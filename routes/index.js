@@ -23,6 +23,12 @@ function getPage (res,url) {
 		res.render('index',{additional:'You typed in an invalid url2!'});//failure
 	}
 	else {
+		var re1 = /https:\/\//g;
+		var re2 = /http:\/\//g;
+		if (!re1.test(url) || !re2.test(url)) {
+			url = 'https://' + url;
+		}
+		console.log();
 		request(
 			{
 				uri: url
@@ -33,7 +39,7 @@ function getPage (res,url) {
 			}
 			, function(error, response, body) {
 				if (error === null) {
-					console.log(error);
+					console.log(body);
 					scraper(res,body);
 					res.redirect("/");//MAKE SOMETHING HERE!!!
 				}
@@ -51,7 +57,7 @@ function scraper (res,document) {
 
 //listInfo of form, 
 function addToSpotify (listInfo) {
-	
+
 }
 
 module.exports = router;
