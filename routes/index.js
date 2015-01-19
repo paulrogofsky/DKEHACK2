@@ -106,10 +106,16 @@ function scraper (document,playlist,access_token,refresh_token) {
     wordwrap: 130
 	});
 
-	text = text.replace(/(\s[a-z][\w\d]*)/g, '');
-	text = text.replace(/(\s\[[^\[\]]*\])/g, '');
+	array = text.replace(/(\s[a-z][\w\d]*)/g, '').replace(/(\s\[[^\[\]]*\])/g, '').split('\n');
 
-console.log(text);
+	for(var i = array.length - 1; i >= 0; i--) {
+    if(array[i].trim() === '' || array[i].trim().split(' ').length < 3 || array[i].trim().split(' ').length > 15) {
+       array.splice(i, 1);
+    }
+	}
+
+	console.log(array);
+
 	var songs_info = [];
 	getID(songs_info,playlist,access_token,refresh_token);
 }
