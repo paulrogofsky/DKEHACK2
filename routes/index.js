@@ -1,6 +1,7 @@
 var express = require('express');
 var router = express.Router();
 var request = require ("request");
+var htmlToText = require("html-to-text")
 var redirect_url = 'http://localhost:3000/spotifylogin';
 var c_id = 'f590175fde554cd8ab590260197f14de'
 var c_secret = 'ea8520e7b0374356a539bf927eac249e';
@@ -101,6 +102,14 @@ function getWebPage (res,url,playlist,access_token,refresh_token) {
 }
 
 function scraper (document,playlist,access_token,refresh_token) {
+	var text = htmlToText.fromString(document, {
+    wordwrap: 130
+	});
+
+	text = text.replace(/(\s[a-z][\w\d]*)/g, '');
+	text = text.replace(/(\s\[[^\[\]]*\])/g, '');
+
+console.log(text);
 	var songs_info = [];
 	getID(songs_info,playlist,access_token,refresh_token);
 }
