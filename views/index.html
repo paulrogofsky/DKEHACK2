@@ -2,15 +2,34 @@
 	<head>
 		<title>SpotList Home Page </title>
 	</head>
+	<style>
+		a {font-size:20;}
+		form {
+			display : {{form_display}};
+		}
+		#Login, a {
+			display : {{login_display}};
+		}
+	</style>
 	<body>
-		<div>Welcome to SpotList!</div>
-		<form id = "subpage" action = "/subpage" method = "post">
- 			<label for= "url">Url:</label>
+		<h2>Welcome to SpotList!</h2>
+		<div></div>
+		<p>If you liked some songs on a website, please type in the link to the webpage and we will make a spotify 
+			playlist for you of all those songs.
+		</p>
+		<div></div>
+		<div id = "Login">First, you must log in to spotify in order to use this application. Do so below</div>
+		<a href = "/login">Spotify</a>
+		<form id = "playlistGen" action = "/playlistGen" method = "post">
+ 			<label for= "url">URL:</label>
  			<input type = "text" name = "url"></input>
+ 			<label for = "playlist">Playlist Name:</label>
+ 			<input type = "text" name = "playlist"></input>
+ 			<input type = "hidden" name = "logged_in" value = "{{display_info}}"></input>
  			<input type = "submit"></input>
 		</form>
 		<div>
-			<span> Additional Info Below: </span>
+			<span> Additional Info: </span>
 			<span> {{additional}} </span>
 		</div>
 	</body>

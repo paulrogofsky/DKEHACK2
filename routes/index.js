@@ -1,27 +1,77 @@
 var express = require('express');
 var router = express.Router();
 var request = require ("request");
+var redirect_url = 'http://localhost:3000/spotifylogin';
+var c_id = 'f590175fde554cd8ab590260197f14de'
+var c_secret = 'ea8520e7b0374356a539bf927eac249e';
+var querystring = require('querystring');
+var scopes = 'playlist-modify-public playlist-modify-private';
 
 /* GET home page. */
 router.get('/', function(req, res) {
-	res.render('index',{additional:"Good"});
+	res.render('index',{additional:"Start!",form_display:"none",login_display:"inline"});
 });
 
-router.post('/subpage', function(req, res, next) {
- 	if (req.body.url === '' || req.body.url === undefined) {
-		req.session.alert = 'You must provide a url in order to add to your playlist';
-		res.render('index',{additional:'You typed in an invalid url1!'});//failure
+router.get('/success', function (req,res) {
+	res.render('success');
+});
+
+router.get('/login', function (req,res) {
+	res.redirect('https://accounts.spotify.com/authorize?' 
+		+ querystring.stringify({
+				client_id : c_id
+				, response_type : 'code'
+				, redirect_uri : redirect_url
+				, scope : scopes
+				, show_dialog : false
+			}
+		)
+	);
+});
+
+router.post('/playlistGen', function(req, res, next) {
+ 	if (req.body.url === '' || req.body.url === undefined || req.body.playlist === '' || req.body.playlist === undefined){
+		req.session.alert = 'You must provide a url or playlist name in order to add to your playlist';
+		res.render('index',{additional:'You typed in an invalid url!'});//failure
 	} else {
-  		getPage(res,req.body.url);
-  		addToSpotify(new Object ());
+		var auth_code = req.session.auth_code;
+		request (
+			{
+				uri : 'https://accounts.spotify.com/api/token'
+				, method : 'POST'
+				, form : {
+					grant_type : 'authorization_code'
+					, code : auth_code
+					, redirect_uri : redirect_url
+				}
+				, headers : {
+					Authorization : 'Basic ' + new Buffer(c_id + ":" + c_secret).toString("base64")
+				}
+			}
+			, function(error,response,body) {
+				var bod = JSON.parse(body);
+				getWebPage(res,req.body.url,req.body.playlist,bod.access_token,bod.refresh_token)
+			 }
+		);
   	}
+});
+
+router.get('/spotifylogin', function(req,res) {
+	if (req.param('error') !== null && req.param('code') === null) {
+		res.render('index',{additional:"Invalid Spotify Login!"});
+	} 
+	else {
+		req.session.auth_code = req.param('code');
+		res.render('index',{additional:"You are logged in to Spotify and can now use the website"
+			,form_display:"inline",login_display:"none"});
+	}
 });
 
 //void methods below
 
-function getPage (res,url) {
+function getWebPage (res,url,playlist,access_token,refresh_token) {
 	if (url === '' || url === undefined) {
-		res.render('index',{additional:'You typed in an invalid url2!'});//failure
+		res.render('index',{additional:'You typed in an invalid url!',form_display:"none",login_display:"inline"});//failure
 	}
 	else {
 		var re1 = /https:\/\/(\w+)/g;
@@ -39,38 +89,60 @@ function getPage (res,url) {
 			}
 			, function(error, response, body) {
 				if (error === null) {
-					scraper(res,body);
-					res.redirect("/");//MAKE SOMETHING HERE!!!
+					scraper(body,playlist,access_token,refresh_token);
+					res.redirect("/success");//MAKE SOMETHING HERE!!!
 				}
 				else {
-					res.render('index',{additional:'You typed in an invalid url3!'});
+					res.render('index',{additional:'You typed in an invalid url!',form_display:"none",login_display:"inline"});
 				}
 			}
 		);
 	}
 }
 
-function scraper (res,document) {
-
+function scraper (document,playlist,access_token,refresh_token) {
+	var songs_info = [];
+	getID(songs_info,playlist,access_token,refresh_token);
 }
 
-//listInfo of form, 
-function addToSpotify (listInfo) {
-	request(
+function getID(songs_info,playlist,access_token,refresh_token) {
+	request ( 
 		{
-			uri: 'https://accounts.spotify.com/api/token'
-			, method : "POST"
-			, form : {
-				grant_type : "client_credentials"
-			}
-			, headers : {
-				Authorization: "Basic fbd5ad1a043b4a4f9e014fab620a9690eec73e1c86824f8583ebfaa94ff93893"
+			uri : 'https://api.spotify.com/v1/me'
+			, method : "GET"
+			,  timeout: 10000
+	  		, followRedirect: true
+	  		, maxRedirects: 10
+	  		, headers : {
+				Authorization : 'Bearer ' + access_token
 			}
 		}
-		, function (error, response,body) {
-			console.log(body);
+		, function (error, response, body) {
+			var user_id = JSON.parse(body).id;
+			makePlaylist(songs_info,playlist,access_token,refresh_token,user_id);
 		}
 	);
+}
+
+function makePlaylist(songs_info,playlist,access_token,refresh_token,user_id) {
+	request ( 
+		{
+			uri : 'https://api.spotify.com/v1/users/' + user_id + '/playlists'
+			, method : "POST"
+	  		, headers : {
+				Authorization : 'Bearer ' + access_token
+			}
+			, data : "{\"name\":\"NewPlaylist\",\"public\":false}"
+		}
+		, function (error, response, body) {
+			console.log(response);
+			putIntoPlaylist(songs_info,playlist,access_token,refresh_token,user_id);
+		}
+	);
+}
+
+function putIntoPlaylist(songs_info,playlist,access_token,refresh_token,user_id) {
+
 }
 
 module.exports = router;
