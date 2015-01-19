@@ -139,12 +139,17 @@ function makePlaylist(songs_info,playlist,access_token,refresh_token,user_id) {
 			uri : 'https://api.spotify.com/v1/users/' + user_id + '/playlists'
 			, method : "POST"
 	  		, headers : {
-				Authorization : 'Bearer ' + access_token
+				"Authorization" : 'Bearer ' + access_token
+				, "Content-Type" : "application/json"
 			}
-			, data : "{\"name\":\"NewPlaylist\",\"public\":false}"
+			, dataType : 'json'
+			, body : JSON.stringify({
+				"public" : false
+				, "name" : playlist
+			})
 		}
 		, function (error, response, body) {
-			console.log(response);
+			console.log(body);
 			putIntoPlaylist(songs_info,playlist,access_token,refresh_token,user_id);
 		}
 	);
