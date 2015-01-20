@@ -120,7 +120,7 @@ function scraper (document,playlist,access_token,refresh_token) {
 
 	console.log(array);
 
-	var queries = [];
+	var queries = ['babel','rompe, daddy yankee','lil bow wow basketball', '"grillz" nelly', 'daniel powter, bad day'];
 	getID(queries,playlist,access_token,refresh_token);
 }
 
@@ -160,59 +160,50 @@ function makePlaylist(queries,playlist,access_token,refresh_token,user_id) {
 		}
 		, function (error, response, body) {
 			var playlist_id = JSON.parse(body).id;
-			spotifyQueryResults(queries,access_token,refresh_token,user_id, playlist_id);
+			for (query in queries) {
+				spotifyQueryResults(query,access_token,refresh_token,user_id, playlist_id);	
+			}
 		}
 	);
 }
 
-function spotifyQueryResults(queries,access_token,refresh_token,user_id, playlist_id) {
-	var spotify_info = [];
-	var urise = [];
-	for (query in queries) {
-		request ( 
-			{
-				uri : 'https://api.spotify.com/v1/search?' 
-					+ querystring.stringify(
-						{
-							type : 'track' //'track,artist'
-							, limit : 5 //can increase with more uncertainty
-							, q : query
-						}
-					)
-				, method : "GET"
-				,  timeout: 10000
-		  		, followRedirect: true
-		  		, maxRedirects: 10
-		  		, headers : {
-					Authorization : 'Bearer ' + access_token
-				}
+function spotifyQueryResults(query,access_token,refresh_token,user_id, playlist_id) {
+	request ( 
+		{
+			uri : 'https://api.spotify.com/v1/search?' 
+				+ querystring.stringify(
+					{
+						type : 'track' //'track,artist'
+						, limit : 5 //can increase with more uncertainty
+						, q : query
+					}
+				)
+			, method : "GET"
+			,  timeout: 10000
+	  		, followRedirect: true
+	  		, maxRedirects: 10
+	  		, headers : {
+				Authorization : 'Bearer ' + access_token
 			}
-			, function (error, response, body) {
-				//todo figure out which one is the most similar
-				var first_item = JSON.parse(body).tracks.items[0];
-				var artists = [];
-				for (artist in first_item.artists) {
-					artists.append(artist.name);
-				}
-				urise.append(first_item.uri);
-				spotify_info.append({
-					track : first_item.name
-					, album : first_item.album.name
-					, artists : artists.join(', ')
-				});
-			}
-		);
-	}
-	spotifyAddIntoPlaylist(spotify_info,urise,access_token,refresh_token,user_id,playlist_id);
+		}
+		, function (error, response, body) {
+			//todo figure out which one is the most similar
+			var first_item = JSON.parse(body).tracks.items[0];
+			// artist: first_item.artists[0].name
+			// track : first_item.name
+			// album : first_item.album.name
+			spotifyAddIntoPlaylist(first_item.uri,access_token,refresh_token,user_id,playlist_id);
+		}
+	);
 }
 
-function spotifyAddIntoPlaylist(spotify_info,urise,access_token,refresh_token,user_id,playlist_id) {
+function spotifyAddIntoPlaylist(uri,access_token,refresh_token,user_id,playlist_id) {
 	var strs = ['https://api.spotify.com/v1/users/',user_id,'/playlists/',playlist_id,'/tracks?'];
 	request (
 		{
 			uri : strs.join('') + querystring.stringify({
 				position : 0
-				, uris : urise.join(',')
+				, uris : uri
 			})
 			, method : "POST"
 			, headers : {
