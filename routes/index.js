@@ -17,6 +17,10 @@ router.get('/success', function (req,res) {
 	res.render('success');
 });
 
+router.get('/query', function (req,res) {
+	res.render('query');
+});
+
 router.get('/login', function (req,res) {
 	res.redirect('https://accounts.spotify.com/authorize?' 
 		+ querystring.stringify({
@@ -109,12 +113,12 @@ function scraper (document,playlist,access_token,refresh_token) {
 	text = text.replace(/(\s[a-z][\w\d]*)/g, '');
 	text = text.replace(/(\s\[[^\[\]]*\])/g, '');
 
-console.log(text);
-	var songs_info = [];
-	getID(songs_info,playlist,access_token,refresh_token);
+	console.log(text);
+	var queries = [];
+	getID(queries,playlist,access_token,refresh_token);
 }
 
-function getID(songs_info,playlist,access_token,refresh_token) {
+function getID(queries,playlist,access_token,refresh_token) {
 	request ( 
 		{
 			uri : 'https://api.spotify.com/v1/me'
@@ -128,12 +132,12 @@ function getID(songs_info,playlist,access_token,refresh_token) {
 		}
 		, function (error, response, body) {
 			var user_id = JSON.parse(body).id;
-			makePlaylist(songs_info,playlist,access_token,refresh_token,user_id);
+			makePlaylist(queries,playlist,access_token,refresh_token,user_id);
 		}
 	);
 }
 
-function makePlaylist(songs_info,playlist,access_token,refresh_token,user_id) {
+function makePlaylist(queries,playlist,access_token,refresh_token,user_id) {
 	request ( 
 		{
 			uri : 'https://api.spotify.com/v1/users/' + user_id + '/playlists'
@@ -149,14 +153,71 @@ function makePlaylist(songs_info,playlist,access_token,refresh_token,user_id) {
 			})
 		}
 		, function (error, response, body) {
-			console.log(body);
-			putIntoPlaylist(songs_info,playlist,access_token,refresh_token,user_id);
+			var playlist_id = JSON.parse(body).id;
+			spotifyQueryResults(queries,access_token,refresh_token,user_id, playlist_id);
 		}
 	);
 }
 
-function putIntoPlaylist(songs_info,playlist,access_token,refresh_token,user_id) {
+function spotifyQueryResults(queries,access_token,refresh_token,user_id, playlist_id) {
+	var spotify_info = [];
+	var urise = [];
+	for (query in queries) {
+		request ( 
+			{
+				uri : 'https://api.spotify.com/v1/search?' 
+					+ querystring.stringify(
+						{
+							type : 'track' //'track,artist'
+							, limit : 5 //can increase with more uncertainty
+							, q : query
+						}
+					)
+				, method : "GET"
+				,  timeout: 10000
+		  		, followRedirect: true
+		  		, maxRedirects: 10
+		  		, headers : {
+					Authorization : 'Bearer ' + access_token
+				}
+			}
+			, function (error, response, body) {
+				//todo figure out which one is the most similar
+				var first_item = JSON.parse(body).tracks.items[0];
+				var artists = [];
+				for (artist in first_item.artists) {
+					artists.append(artist.name);
+				}
+				urise.append(first_item.uri);
+				spotify_info.append({
+					track : first_item.name
+					, album : first_item.album.name
+					, artists : artists.join(', ')
+				});
+			}
+		);
+	}
+	spotifyAddIntoPlaylist(spotify_info,urise,access_token,refresh_token,user_id,playlist_id);
+}
 
+function spotifyAddIntoPlaylist(spotify_info,urise,access_token,refresh_token,user_id,playlist_id) {
+	var strs = ['https://api.spotify.com/v1/users/',user_id,'/playlists/',playlist_id,'/tracks?'];
+	request (
+		{
+			uri : strs.join('') + querystring.stringify({
+				position : 0
+				, uris : urise.join(',')
+			})
+			, method : "POST"
+			, headers : {
+				Authorization : 'Bearer ' + access_token
+				, Accept : "application/json"
+			}
+		}
+		, function (error, response, body) {
+			console.log(body);
+		}
+	);
 }
 
 module.exports = router;
