@@ -106,16 +106,15 @@ function getWebPage (res,url,playlist,access_token,refresh_token) {
 }
 
 function scraper (document,playlist,access_token,refresh_token) {
-	// var text = htmlToText.fromString(document, {
- //    wordwrap: 130
-	// });
-
 	// array = text.replace(/(\s[a-z][\w\d]*)/g, '').replace(/(\s\[[^\[\]]*\])/g, '').split('\n');
 
 	// for(var i = array.length - 1; i >= 0; i--) {
-	//     if(array[i].trim() === '' || array[i].trim().split(' ').length < 3 || array[i].trim().split(' ').length > 15) {
-	//        array.splice(i, 1);
-	//     }
+ //    if(array[i].trim() === ''
+ //    	|| array[i].trim().split(' ').length < 3
+ //    	|| array[i].trim().split(' ').length > 15
+ //    	|| array[i].indexOf("*") > -1) {
+ //       array.splice(i, 1);
+ //    }
 	// }
 
 	// console.log(array);
