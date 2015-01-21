@@ -106,19 +106,19 @@ function getWebPage (res,url,playlist,access_token,refresh_token) {
 }
 
 function scraper (document,playlist,access_token,refresh_token) {
-	var text = htmlToText.fromString(document, {
-    wordwrap: 130
-	});
+	// var text = htmlToText.fromString(document, {
+ //    wordwrap: 130
+	// });
 
-	array = text.replace(/(\s[a-z][\w\d]*)/g, '').replace(/(\s\[[^\[\]]*\])/g, '').split('\n');
+	// array = text.replace(/(\s[a-z][\w\d]*)/g, '').replace(/(\s\[[^\[\]]*\])/g, '').split('\n');
 
-	for(var i = array.length - 1; i >= 0; i--) {
-	    if(array[i].trim() === '' || array[i].trim().split(' ').length < 3 || array[i].trim().split(' ').length > 15) {
-	       array.splice(i, 1);
-	    }
-	}
+	// for(var i = array.length - 1; i >= 0; i--) {
+	//     if(array[i].trim() === '' || array[i].trim().split(' ').length < 3 || array[i].trim().split(' ').length > 15) {
+	//        array.splice(i, 1);
+	//     }
+	// }
 
-	console.log(array);
+	// console.log(array);
 
 	var queries = ['babel','rompe, daddy yankee','lil bow wow basketball', '"grillz" nelly', 'daniel powter, bad day'];
 	getID(queries,playlist,access_token,refresh_token);
@@ -160,8 +160,8 @@ function makePlaylist(queries,playlist,access_token,refresh_token,user_id) {
 		}
 		, function (error, response, body) {
 			var playlist_id = JSON.parse(body).id;
-			for (query in queries) {
-				spotifyQueryResults(query,access_token,refresh_token,user_id, playlist_id);	
+			for (var i = 0 ; i < queries.length; i ++) {
+				spotifyQueryResults(queries[i],access_token,refresh_token,user_id, playlist_id);	
 			}
 		}
 	);
@@ -175,6 +175,7 @@ function spotifyQueryResults(query,access_token,refresh_token,user_id, playlist_
 					{
 						type : 'track' //'track,artist'
 						, limit : 5 //can increase with more uncertainty
+						, offset : 0
 						, q : query
 					}
 				)
@@ -183,27 +184,25 @@ function spotifyQueryResults(query,access_token,refresh_token,user_id, playlist_
 	  		, followRedirect: true
 	  		, maxRedirects: 10
 	  		, headers : {
-				Authorization : 'Bearer ' + access_token
+				//Authorization : 'Bearer ' + access_token
+				Accept : 'Application/json'
 			}
 		}
 		, function (error, response, body) {
 			//todo figure out which one is the most similar
-			var first_item = JSON.parse(body).tracks.items[0];
-			// artist: first_item.artists[0].name
-			// track : first_item.name
-			// album : first_item.album.name
-			spotifyAddIntoPlaylist(first_item.uri,access_token,refresh_token,user_id,playlist_id);
+			var track_info = JSON.parse(body).tracks.items[0];
+			spotifyAddIntoPlaylist(track_info,access_token,refresh_token,user_id,playlist_id);
 		}
 	);
 }
 
-function spotifyAddIntoPlaylist(uri,access_token,refresh_token,user_id,playlist_id) {
+function spotifyAddIntoPlaylist(track_info,access_token,refresh_token,user_id,playlist_id) {
 	var strs = ['https://api.spotify.com/v1/users/',user_id,'/playlists/',playlist_id,'/tracks?'];
 	request (
 		{
 			uri : strs.join('') + querystring.stringify({
 				position : 0
-				, uris : uri
+				, uris : track_info.uri
 			})
 			, method : "POST"
 			, headers : {
@@ -212,6 +211,10 @@ function spotifyAddIntoPlaylist(uri,access_token,refresh_token,user_id,playlist_
 			}
 		}
 		, function (error, response, body) {
+			// artist: first_item.artists[0].name
+			// track : first_item.name
+			// album : first_item.album.name
+			console.log(track_info.name);
 			console.log(body);
 		}
 	);
