@@ -3,18 +3,19 @@ __author__ = 'Paul'
 import os
 import requests
 import csv
+import argparse
 
 # store access tokens below, add users here
 access_tokens = {
     'paul': 'a12fd33016f60133a58c36d16114805d'
 }
 
-# start up request session below to save cookies
+# start up request session below to save cookies, if faster for GroupMe
 session = requests.Session()
 
 def ascii(x):
     """
-    Converts x to an ascii string
+    Converts x to an ascii string- specifically important for emojis/other items in text as CSV reader only takes ascii chars
     :param x: parameter to be converted (usually a unicode string)
     :return: an ascii string
     """
@@ -38,7 +39,7 @@ def loadGroupsToCSV(access_name):
         groups_data = groups_request.json()['response']
         csv_writer.writerow(['id', 'name', 'message_count'])
         for group in groups_data:
-            csv_writer.writerow([ascii(group['id']), ascii(group['name']), group['messages']['count']])
+            csv_writer.writerow([group['id'], ascii(group['name']), group['messages']['count']])
 
 def get_users(users_filename):
     """
@@ -50,7 +51,7 @@ def get_users(users_filename):
     with open(users_filename, 'rb') as users_file:
         csv_users_reader = csv.DictReader(users_file, ',')
         for row in csv_users_reader:
-            users[row['id']] = users[row['name']]
+            users[row['id']] = users[ascii(row['name'])]
     return users
 
 def requestMessages(message_writer, picture_writer, token, group_id, users, message_id, most_recent):
@@ -86,7 +87,7 @@ def requestMessages(message_writer, picture_writer, token, group_id, users, mess
         user_id = message['user_id']
         # only add users that are not there or we are loading a new name from the past (past names are better than current)
         if (user_id not in users) or (user_id in users and not most_recent):
-            users[user_id] = users['name']
+            users[user_id] = ascii(users['name'])
         # load in pictures, and write them
         pictures = []
         for attach in attachments:
@@ -97,7 +98,7 @@ def requestMessages(message_writer, picture_writer, token, group_id, users, mess
         message_writer.writerow({
             'id': message_id,
             'user': user_id,
-            'text': message['text'],
+            'text': ascii(message['text']),
             'datetime': message['created_at'],
             'favorited': ' '.join(message['favorited_by']),
             'pictures': ' '.join(pictures)
@@ -111,7 +112,7 @@ def handleMessages(access_name, group_id):
     """
     Instead of overloading the GroupMe API, we are going to intelligently load all messages not already loaded into the CSV through this method
     :param str access_name: The name of the person trying to access the GroupMeAPI and load in messages
-    :param str group_id: The id of the group that the user wants to get messages for
+    :param int group_id: The id of the group that the user wants to get messages for
     :return: Nothing, void function
     """
     token = access_tokens[access_name]
@@ -160,8 +161,16 @@ if __name__ == '__main__':
     # ensure data_files folder exists for storing data
     if not os.path.exists('data_files'):
         os.makedirs('data_files')
-    # TODO argparse
+    # build argument parser below for interacting with GroupMe API
+    parser = argparse.ArgumentParser(description='Interact with the GroupMe Bulk Loading Program')
+    parser.add_argument('name', type = str, help = 'Name to access the GroupMe API with')
+    parser.add_argument('--groupsCSV', action = 'store_true', default = False, help = 'Add groups to CSV from GroupMe', type = bool)
+    parser.add_argument('--messagesCSV', nargs = 1, type = int, default = -1, help = 'Add messages to CSV from GroupMe of the group id you pass in')
+    args = parser.parse_args()
+    if args.groupsCSV:
+        loadGroupsToCSV(args.name)
+    if args.messagesCSV != -1:
+        handleMessages(args.name, args.messagesCSV)
     # TODO testing
     # TODO mongolab uploading from CSV
-    # make sure everything in ascii
     pass
